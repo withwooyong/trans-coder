@@ -1,6 +1,6 @@
-# transcoderG
-transcoderG
-# ==FFMPEG 활용 MTS 내재화 개발==
+# transcoderG and transmanagerB
+
+# ==FFMPEG 활용 MTS 개발==
 
 ```mermaid
 graph TD;
