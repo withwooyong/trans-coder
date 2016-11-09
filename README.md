@@ -1,6 +1,6 @@
-# transcoderG and transmanagerB
+# transcoderG(client) transmanagerB(manager)
 
-# ==FFMPEG 활용 MTS 개발==
+# ==FFMPEG 활용 MTS 발==
 
 ```mermaid
 graph TD;
