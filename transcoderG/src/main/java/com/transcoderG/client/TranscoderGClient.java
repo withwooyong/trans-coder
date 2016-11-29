@@ -1,8 +1,10 @@
 package com.transcoderG.client;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.Scanner;
-import java.util.regex.Pattern;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -10,7 +12,6 @@ import org.springframework.context.annotation.Scope;
 import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.stereotype.Component;
 
-import com.google.gson.Gson;
 import com.transcoderG.redis.TranscoderGRedisCommand;
 
 /**
@@ -47,13 +48,32 @@ public class TranscoderGClient implements Runnable {
 	@Override
 	public void run() {
 		log.info("correlation_ID={} command={}", correlation_ID, command);
-		ProcessBuilder pb = new ProcessBuilder(new String[] { "/bin/sh", "-c", command });
+		//ProcessBuilder pb = new ProcessBuilder(new String[] { "/bin/sh", "-c", command });
+		//ProcessBuilder pb = new ProcessBuilder(new String[] { "/bin/sh", "-c", "/root/bin/clienttest", correlation_ID, command });
+		//ProcessBuilder pb = new ProcessBuilder("/bin/sh", "-c", "/root/bin/clienttest", correlation_ID, command);
+		
+		ProcessBuilder pb = new ProcessBuilder("/bin/sh", "-c", "/root/ffmpeg_run " + correlation_ID + " \"" + command + "\"");
+		
+		ProcessBuilder pb2 = new ProcessBuilder("/bin/sh", "-c", "/root/ffmpeg_progress " + correlation_ID);
+		
+		
 		Process p;
+		Process p2;
 		Scanner sc = null; 
 		try {
 			p = pb.start();
-			sc = new Scanner(p.getErrorStream());
+			p2 = pb2.start();
+			int errCode = p.waitFor();
+			int errCode2 = p2.waitFor();
+			log.info("Echo command executed, any errors1? {}", (errCode == 0 ? "No" : "Yes"));
+			log.info("Echo Output1:{}", output(p.getInputStream()));
 			
+			log.info("Echo command executed, any errors2? {}", (errCode2 == 0 ? "No" : "Yes"));
+			log.info("Echo Output2:{}", output(p2.getInputStream()));
+			
+//			sc = new Scanner(p.getErrorStream());
+//			log.info(sc.toString());
+			/*
 			// Find duration 
 			// Duration: 00:20:00.19, start: 0.000000, bitrate: 1127 kb/s Total duration: 1200.19 seconds.
 			Pattern durPattern = Pattern.compile("(?<=Duration: )[^,]*");
@@ -88,7 +108,10 @@ public class TranscoderGClient implements Runnable {
 				String jsonString = gson.toJson(redisCommand);
 				valueOps.getAndSet(correlation_ID, jsonString);
 			}
+			*/
 		} catch (IOException e) {
+			e.printStackTrace();
+		} catch (InterruptedException e) {
 			e.printStackTrace();
 		} finally {
 			if (sc != null) {
@@ -96,4 +119,20 @@ public class TranscoderGClient implements Runnable {
 			}
 		}
 	}
+	
+	private static String output(InputStream inputStream) throws IOException {
+		StringBuilder sb = new StringBuilder();
+		BufferedReader br = null;
+		try {
+			br = new BufferedReader(new InputStreamReader(inputStream));
+			String line = null;
+			while ((line = br.readLine()) != null) {
+				sb.append(line + System.getProperty("line.separator"));
+			}
+		} finally {
+			br.close();
+		}
+		return sb.toString();
+	}
+
 }
